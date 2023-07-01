@@ -51,33 +51,47 @@ app.get('/animes/:id', (req, res) => {
     });
 });
 
-// Ruta para crear un nuevo anime
-app.post('/animes', (req, res) => {
-    const anime = req.body;
+// Ruta para agregar un nuevo anime
 
-    fs.readFile('anime.JSON', 'utf8', (err, data) => {
+app.post("/animes", (req, res) => {
+
+    const anime = req.body;
+    fs.readFile("anime.json", "utf8", (err, data) => {
+
         if (err) {
             console.error(err);
-            return res.status(500).json({ error: 'Error al leer los datos de los animes.' });
-        }
-
-        const animes = JSON.parse(data);
-        const id = generateId(animes);
-        anime.id = id;
-        animes[id] = anime;
-
-        fs.writeFile('anime.JSON', JSON.stringify(animes), (err) => {
-            if (err) {
-                console.error(err);
-                return res.status(500).json({ error: 'Error al guardar el anime.' });
+            res.status(500).send("Error en el servidor");
+        } else {
+            const animes = JSON.parse(data);
+            let maxId = 0;
+            for (const id in animes) {
+                if (animes.hasOwnProperty(id)) {
+                    const currentId = parseInt(id);
+                    if (currentId > maxId) {
+                        maxId = currentId;
+                    }
+                }
             }
-
-            res.json({ message: 'Anime creado exitosamente.', id });
-        });
+            const newId = maxId + 1;
+            animes[newId.toString()] = { ...anime };
+            fs.writeFile(
+                "anime.json",
+                JSON.stringify(animes, null, 2),
+                "utf8",
+                (err) => {
+                    if (err) {
+                        console.error(err);
+                        res.status(500).send("Error en el servidor");
+                    } else {
+                        res.send("Anime agregado correctamente");
+                    }
+                }
+            );
+        }
     });
 });
 
-// Ruta para actualizar un anime existente
+// Ruta para actualizar (update) un anime existente
 app.put('/animes/:id', (req, res) => {
     const id = req.params.id;
     const animeUpdates = req.body;
@@ -137,18 +151,24 @@ app.delete('/animes/:id', (req, res) => {
         });
     });
 });
-
-// Función auxiliar para generar un nuevo ID único
-function generateId(animes) {
-    let maxId = 0;
-    for (const id of Object.keys(animes)) {
-        const numId = parseInt(id);
-        if (numId > maxId) {
-            maxId = numId;
+// Ruta para buscar un anime por su nombre
+app.get('/animes/search/:nombre', (req, res) => {
+    const nombre = req.params.nombre.toLowerCase();
+    fs.readFile('anime.json', 'utf8', (err, data) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({ error: 'Error al leer los datos de los animes.' });
         }
-    }
-    return (maxId + 1).toString();
-}
+        const animes = JSON.parse(data);
+        const anime = Object.values(animes).find(
+            (a) => a.nombre.toLowerCase() === nombre
+        );
+        if (!anime) {
+            return res.status(404).json({ error: 'Anime no encontrado.' });
+        }
+        res.json(anime);
+    });
+});
 
 
 
