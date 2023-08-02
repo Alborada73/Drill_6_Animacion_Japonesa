@@ -170,6 +170,8 @@ app.get('/animes/search/:nombre', (req, res) => {
     });
 });
 
+module.exports = {app}
+
 
 
 
